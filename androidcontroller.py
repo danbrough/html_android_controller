@@ -5,17 +5,17 @@ import SocketServer
 
 PORT = 8888
 
-
-"""
-Send the lat,lng values to the running emulator
-"""
-def send_point_to_emulator(lat, lng):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('localhost', 5554))
-    s.send("geo fix %s %s\nquit\n" % (lng, lat))
-    s.close()
     
-class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class RequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+    """
+    Send the lat,lng values to the running emulator
+    """
+    def send_point_to_emulator(self,lat, lng):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('localhost', 5554))
+        s.send("geo fix %s %s\nquit\n" % (lng, lat))
+        s.close()
+        
     '''For any GET request we write the HTML variable as a response'''
     def do_GET(self):
         self.send_response(200)
@@ -33,10 +33,13 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
         self.end_headers()        
-        send_point_to_emulator(data[0], data[1])
+        self.send_point_to_emulator(data[0], data[1])
         
-class WebServer(SocketServer.TCPServer):
+class WebServer(SocketServer.TCPServer):    
     allow_reuse_address = True
+    
+    def __init__(server_address):
+        SocketServer.TCPServer.__init__(self, server_address, RequestHandler)
 
 
 
@@ -58,6 +61,7 @@ html, body, #map-canvas {
     var map,marker;
     
     function initialize() {
+    
         var mapOptions = {
             center : {
                 lat : -41.309573,
@@ -67,6 +71,7 @@ html, body, #map-canvas {
             mapTypeId: google.maps.MapTypeId.NORMAL,
             styles: []
         };
+        
         map = new google.maps.Map(document.getElementById('map-canvas'),
                 mapOptions);        
         marker = new google.maps.Marker({position:map.center,map:map});
@@ -89,6 +94,6 @@ google.maps.event.addDomListener(window, 'load', initialize);
 </html>
 """
 
-httpd = WebServer(("localhost", PORT), Handler)
-print "start webserver at http://localhost:%d" % PORT
+httpd = WebServer(("localhost", PORT))
+print "starting webserver at http://localhost:%d" % PORT
 httpd.serve_forever()
