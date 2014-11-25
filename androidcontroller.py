@@ -38,7 +38,7 @@ class RequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 class WebServer(SocketServer.TCPServer):    
     allow_reuse_address = True
     
-    def __init__(server_address):
+    def __init__(self,server_address):
         SocketServer.TCPServer.__init__(self, server_address, RequestHandler)
 
 
